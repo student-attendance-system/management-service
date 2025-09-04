@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: student-management-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: student-management-service
+  template:
+    metadata:
+      labels:
+        app: student-management-service
+    spec:
+      containers:
+      - name: student-management-service
+        image: gunjan1603/student-management-service:latest
+        ports:
+        - containerPort: 3001
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "512Mi"
+        env:
+           - name: MYSQL_HOST
+             value: mysql
+           - name: MYSQL_NAME
+             valueFrom:
+               secretKeyRef:
+                 name: mysql-secret
+                 key: MYSQL_DATABASE
+           - name: MYSQL_USER
+             valueFrom:
+               secretKeyRef:
+                 name: mysql-secret
+                 key: MYSQL_USER
+           - name: MYSQL_PASSWORD
+             valueFrom:
+               secretKeyRef:
+                 name: mysql-secret
+                 key: MYSQL_PASSWORD
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 15
+          periodSeconds: 20
