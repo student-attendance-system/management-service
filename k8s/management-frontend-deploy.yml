@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: management-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: management-frontend
+  template:
+    metadata:
+      labels:
+        app: management-frontend
+    spec:
+      containers:
+      - name: management-frontend
+        image: gunjan1603/management-frontend:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 20
