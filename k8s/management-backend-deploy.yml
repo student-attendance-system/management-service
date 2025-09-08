@@ -46,6 +46,11 @@ spec:
             secretKeyRef:
               name: mysql-secret
               key: MYSQL_PASSWORD
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: JWT_SECRET
         readinessProbe:
           httpGet:
             path: /health
