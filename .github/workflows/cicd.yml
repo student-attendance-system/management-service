@@ -35,7 +35,7 @@ jobs:
           node-version: "18"
       - name: Install dependencies
         run: npm install
-        working-directory: management-backend
+        working-directory: student-management-service
       - name: Run ESLint
         run: npx eslint . || true
         working-directory: .
@@ -51,7 +51,7 @@ jobs:
           node-version: "18"
       - name: Install dependencies
         run: npm install
-        working-directory: management-backend
+        working-directory: student-management-service
       - name: Run npm audit
         run: npm audit --audit-level=moderate || true
         working-directory: .
@@ -67,7 +67,7 @@ jobs:
           node-version: "18"
       - name: Install dependencies
         run: npm install
-        working-directory: management-backend
+        working-directory: student-management-service
       - name: Run Jest tests
         run: npm test || echo "No tests found, skipping..."
         working-directory: .
@@ -84,10 +84,10 @@ jobs:
           php-version: "8.2"
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
-        working-directory: management-frontend
+        working-directory: student-frontend
       - name: Install PHPStan
         run: composer require --dev phpstan/phpstan
-        working-directory: management-frontend
+        working-directory: student-frontend
       - name: Run PHPStan Analysis
         run: vendor/bin/phpstan analyse src --level=3 --no-progress --memory-limit=1G
         working-directory: .
@@ -103,7 +103,7 @@ jobs:
           php-version: "8.2"
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
-        working-directory: management-frontend
+        working-directory: student-frontend
       - name: Run Composer Audit (SCA)
         run: composer audit || true
         working-directory: .
@@ -119,7 +119,7 @@ jobs:
           php-version: "8.2"
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
-        working-directory: management-frontend
+        working-directory: student-frontend
       - name: Run PHPUnit
         run: |
           if [ -f vendor/bin/phpunit ]; then
@@ -143,13 +143,13 @@ jobs:
       - name: Build & Push Backend
         run: |
           docker build -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-backend:${{ github.sha }} \
-            -f management-backend/Dockerfile management-backend
+            -f student-management-service/Dockerfile student-management-service
           docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-backend:${{ github.sha }}
       - name: Build & Push Frontend
         run: |
-          docker build -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-frontend:${{ github.sha }} \
-            -f management-frontend/Dockerfile management-frontend
-          docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-frontend:${{ github.sha }}
+          docker build -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/student-frontend:${{ github.sha }} \
+            -f student-frontend/Dockerfile student-frontend
+          docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/student-frontend:${{ github.sha }}
 
   # ---------- Deploy to Kubernetes ----------
   deploy:
