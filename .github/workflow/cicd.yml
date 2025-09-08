@@ -1,0 +1,141 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Lint YAML
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: ".github/workflows/"
+          strict: true
+          config_data: |
+            extends: default
+            rules:
+              line-length: disable
+              truthy: disable
+              document-start: disable
+
+  sast:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+        working-directory: management-backend
+      - name: Install PHPStan
+        run: composer require --dev phpstan/phpstan
+        working-directory: management-backend
+      - name: Run PHPStan Analysis
+        run: vendor/bin/phpstan analyse src --level=3 --no-progress --memory-limit=1G
+        working-directory: management-backend
+
+  sca:
+    runs-on: ubuntu-latest
+    needs: sast
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+        working-directory: management-backend
+      - name: Run Composer Audit (SCA)
+        run: composer audit || true
+        working-directory: management-backend
+
+  tests:
+    runs-on: ubuntu-latest
+    needs: sca
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+        working-directory: management-backend
+      - name: Run PHPUnit
+        run: |
+          if [ -f vendor/bin/phpunit ]; then
+            vendor/bin/phpunit --testdox
+          else
+            echo "No PHPUnit tests found, skipping..."
+          fi
+        working-directory: management-backend
+
+  build:
+    runs-on: ubuntu-latest
+    needs: tests
+    steps:
+      - uses: actions/checkout@v3
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build & Push Backend
+        run: |
+          docker build -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-backend:${{ github.sha }} \
+            -f management-backend/Dockerfile management-backend
+          docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-backend:${{ github.sha }}
+      - name: Build & Push Frontend
+        run: |
+          docker build -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-frontend:${{ github.sha }} \
+            -f management-frontend/Dockerfile management-frontend
+          docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-frontend:${{ github.sha }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.USER_TOKEN }}
+      - name: Update backend manifest
+        run: sed -i "s|image:.*management-backend:.*|image:docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-backend:${{ github.sha }}|g" k8s/management-backend-deploy.yml
+      - name: Update frontend manifest
+        run: sed -i "s|image:.*management-frontend:.*|image:docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-frontend:${{ github.sha }}|g" k8s/management-frontend-deploy.yml
+      - name: Commit & Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/*.yml
+          git commit -m "Update images to ${{ github.sha }}" || echo "No changes to commit"
+          git push origin main --force
+
+  dast:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Wait for app to be ready
+        run: |
+          echo "Waiting 30s for deployed app to be ready..."
+          sleep 30
+
+      - name: Run DAST scan using ZAP Docker
+        run: |
+          docker pull owasp/zap2docker-stable:latest
+          docker run --rm -t owasp/zap2docker-stable:latest zap-full-scan.py \
+            -t http://your-management-service-url.com -r dast-report.html
+
+      - name: Upload DAST report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-report
+          path: dast-report.html
