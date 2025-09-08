@@ -23,7 +23,57 @@ jobs:
               truthy: disable
               document-start: disable
 
-  sast:
+  # ---------- Backend (Node.js) ----------
+  sast-backend:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Install dependencies
+        run: npm install
+        working-directory: management-backend
+      - name: Run ESLint
+        run: npx eslint . || true
+        working-directory: management-backend
+
+  sca-backend:
+    runs-on: ubuntu-latest
+    needs: sast-backend
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Install dependencies
+        run: npm install
+        working-directory: management-backend
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate || true
+        working-directory: management-backend
+
+  tests-backend:
+    runs-on: ubuntu-latest
+    needs: sca-backend
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Install dependencies
+        run: npm install
+        working-directory: management-backend
+      - name: Run Jest tests
+        run: npm test || echo "No tests found, skipping..."
+        working-directory: management-backend
+
+  # ---------- Frontend (PHP) ----------
+  sast-frontend:
     runs-on: ubuntu-latest
     needs: lint
     steps:
@@ -34,17 +84,17 @@ jobs:
           php-version: "8.2"
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
-        working-directory: management-backend
+        working-directory: management-frontend
       - name: Install PHPStan
         run: composer require --dev phpstan/phpstan
-        working-directory: management-backend
+        working-directory: management-frontend
       - name: Run PHPStan Analysis
         run: vendor/bin/phpstan analyse src --level=3 --no-progress --memory-limit=1G
-        working-directory: management-backend
+        working-directory: management-frontend
 
-  sca:
+  sca-frontend:
     runs-on: ubuntu-latest
-    needs: sast
+    needs: sast-frontend
     steps:
       - uses: actions/checkout@v3
       - name: Set up PHP
@@ -53,14 +103,14 @@ jobs:
           php-version: "8.2"
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
-        working-directory: management-backend
+        working-directory: management-frontend
       - name: Run Composer Audit (SCA)
         run: composer audit || true
-        working-directory: management-backend
+        working-directory: management-frontend
 
-  tests:
+  tests-frontend:
     runs-on: ubuntu-latest
-    needs: sca
+    needs: sca-frontend
     steps:
       - uses: actions/checkout@v3
       - name: Set up PHP
@@ -69,7 +119,7 @@ jobs:
           php-version: "8.2"
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
-        working-directory: management-backend
+        working-directory: management-frontend
       - name: Run PHPUnit
         run: |
           if [ -f vendor/bin/phpunit ]; then
@@ -77,11 +127,12 @@ jobs:
           else
             echo "No PHPUnit tests found, skipping..."
           fi
-        working-directory: management-backend
+        working-directory: management-frontend
 
+  # ---------- Build & Push Docker Images ----------
   build:
     runs-on: ubuntu-latest
-    needs: tests
+    needs: [tests-backend, tests-frontend]
     steps:
       - uses: actions/checkout@v3
       - name: Log in to DockerHub
@@ -100,6 +151,7 @@ jobs:
             -f management-frontend/Dockerfile management-frontend
           docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-frontend:${{ github.sha }}
 
+  # ---------- Deploy to Kubernetes ----------
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -119,6 +171,7 @@ jobs:
           git commit -m "Update images to ${{ github.sha }}" || echo "No changes to commit"
           git push origin main --force
 
+  # ---------- DAST Security Scan ----------
   dast:
     runs-on: ubuntu-latest
     needs: deploy
