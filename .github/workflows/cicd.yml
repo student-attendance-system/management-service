@@ -38,7 +38,7 @@ jobs:
         working-directory: management-backend
       - name: Run ESLint
         run: npx eslint . || true
-        working-directory: management-backend
+        working-directory: .
 
   sca-backend:
     runs-on: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
         working-directory: management-backend
       - name: Run npm audit
         run: npm audit --audit-level=moderate || true
-        working-directory: management-backend
+        working-directory: .
 
   tests-backend:
     runs-on: ubuntu-latest
@@ -70,7 +70,7 @@ jobs:
         working-directory: management-backend
       - name: Run Jest tests
         run: npm test || echo "No tests found, skipping..."
-        working-directory: management-backend
+        working-directory: .
 
   # ---------- Frontend (PHP) ----------
   sast-frontend:
@@ -90,7 +90,7 @@ jobs:
         working-directory: management-frontend
       - name: Run PHPStan Analysis
         run: vendor/bin/phpstan analyse src --level=3 --no-progress --memory-limit=1G
-        working-directory: management-frontend
+        working-directory: .
 
   sca-frontend:
     runs-on: ubuntu-latest
@@ -106,7 +106,7 @@ jobs:
         working-directory: management-frontend
       - name: Run Composer Audit (SCA)
         run: composer audit || true
-        working-directory: management-frontend
+        working-directory: .
 
   tests-frontend:
     runs-on: ubuntu-latest
@@ -127,7 +127,7 @@ jobs:
           else
             echo "No PHPUnit tests found, skipping..."
           fi
-        working-directory: management-frontend
+        working-directory: .
 
   # ---------- Build & Push Docker Images ----------
   build:
