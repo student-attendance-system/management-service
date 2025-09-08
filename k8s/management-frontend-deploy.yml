@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: management-frontend
-        image:docker.io/gunjan1603/management-frontend:46380437a2dff22d11e702ccb2698f5c20bd0aa8
+        image: docker.io/gunjan1603/management-frontend:46380437a2dff22d11e702ccb2698f5c20bd0aa8
         ports:
         - containerPort: 80
         resources:
