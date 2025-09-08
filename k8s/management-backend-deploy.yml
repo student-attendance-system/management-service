@@ -25,23 +25,23 @@ spec:
             cpu: "250m"
             memory: "512Mi"
         env:
-           - name: MYSQL_HOST
-             value: mysql
-           - name: MYSQL_NAME
-             valueFrom:
-               secretKeyRef:
-                 name: mysql-secret
-                 key: MYSQL_DATABASE
-           - name: MYSQL_USER
-             valueFrom:
-               secretKeyRef:
-                 name: mysql-secret
-                 key: MYSQL_USER
-           - name: MYSQL_PASSWORD
-             valueFrom:
-               secretKeyRef:
-                 name: mysql-secret
-                 key: MYSQL_PASSWORD
+        - name: MYSQL_HOST
+          value: mysql
+        - name: MYSQL_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_DATABASE
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
         readinessProbe:
           httpGet:
             path: /health
