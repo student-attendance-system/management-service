@@ -140,9 +140,9 @@ jobs:
         with:
           token: ${{ secrets.USER_TOKEN }}
       - name: Update backend manifest
-        run: sed -i "s|image:.*management-backend:.*|image:docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-backend:${{ github.sha }}|g" management-backend-deploy.yml
+        run: sed -i "s|image:.*management-backend:.*|image:docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-backend:${{ github.sha }}|g" k8s/management-backend-deploy.yml
       - name: Update frontend manifest
-        run: sed -i "s|image:.*management-frontend:.*|image:docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-frontend:${{ github.sha }}|g" management-frontend-deploy.yml
+        run: sed -i "s|image:.*management-frontend:.*|image:docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-frontend:${{ github.sha }}|g" k8s/management-frontend-deploy.yml
       - name: Commit & Push changes
         run: |
           git config --global user.name "github-actions[bot]"
