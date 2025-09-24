@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: student-management-service
-        image: gunjanust/student-management-service:latest
+        image:docker.io/gunjanust/management-backend:ef03fe79d47485cd9b10ff967b97e8129a2f1802
         ports:
         - containerPort: 3001
         resources:
