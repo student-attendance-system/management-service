@@ -11,7 +11,7 @@ jobs:
         with:
           token: ${{ secrets.USER_TOKEN }}
       - name: Update backend manifest
-        run: sed -i "s|image:.*management-backend:.*|image:docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-backend:${{ github.sha }}|g" k8s/management-backend-deploy.yml
+        run: sed -i "s|image:.*student-management-service:.*|image:docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-backend:${{ github.sha }}|g" k8s/management-backend-deploy.yml
       - name: Update frontend manifest
         run: sed -i "s|image:.*management-frontend:.*|image:docker.io/${{ secrets.DOCKERHUB_USERNAME }}/management-frontend:${{ github.sha }}|g" k8s/management-frontend-deploy.yml
       - name: Commit & Push changes
