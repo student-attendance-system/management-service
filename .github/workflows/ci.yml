@@ -24,25 +24,9 @@ jobs:
               truthy: disable
               document-start: disable
 
-  sast-backend:
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-      - name: Install dependencies
-        run: npm install
-        working-directory: student-management-service
-      - name: Run ESLint
-        run: npx eslint . || true
-        working-directory: student-management-service
-
   sca-backend:
     runs-on: ubuntu-latest
-    needs: sast-backend
+    needs: lint
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
@@ -56,9 +40,25 @@ jobs:
         run: npm audit --audit-level=moderate || true
         working-directory: student-management-service
 
-  tests-backend:
+  sast-backend:
     runs-on: ubuntu-latest
     needs: sca-backend
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Install dependencies
+        run: npm install
+        working-directory: student-management-service
+      - name: Run ESLint
+        run: npx eslint . || true
+        working-directory: student-management-service
+
+  tests-backend:
+    runs-on: ubuntu-latest
+    needs: sast-backend
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
@@ -72,9 +72,20 @@ jobs:
         run: npm test || echo "No tests found, skipping..."
         working-directory: student-management-service
 
-  sast-frontend:
+  sca-frontend:
     runs-on: ubuntu-latest
     needs: lint
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run basic security scan
+        run: |
+          echo "No composer.json found, skipping Composer Audit"
+          find . -name "*.php" -exec grep -H "eval(" {} \; || true
+        working-directory: student-frontend
+
+  sast-frontend:
+    runs-on: ubuntu-latest
+    needs: sca-frontend
     steps:
       - uses: actions/checkout@v3
       - name: Set up PHP
@@ -86,20 +97,9 @@ jobs:
           find . -name "*.php" -exec php -l {} \;
         working-directory: student-frontend
 
-  sca-frontend:
-    runs-on: ubuntu-latest
-    needs: sast-frontend
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run basic security scan
-        run: |
-          echo "No composer.json found, skipping Composer Audit"
-          find . -name "*.php" -exec grep -H "eval(" {} \; || true
-        working-directory: student-frontend
-
   tests-frontend:
     runs-on: ubuntu-latest
-    needs: sca-frontend
+    needs: sast-frontend
     steps:
       - uses: actions/checkout@v3
       - name: Run basic PHP tests
