@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: student-management-service
-        image: gunjan1603/student-management-service:latest
+        image: gunjanust/student-management-service:latest
         ports:
         - containerPort: 3001
         resources:
